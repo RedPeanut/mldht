@@ -1,0 +1,96 @@
+==========================
+DHT Diagnostics. Type IPV4_DHT
+# of active servers / all servers: 0/0
+-----------------------
+Stats
+Reachable node estimate: 1
+DB Keys: 0
+DB Items: 0
+TX sum: 0 RX sum: 0
+avg task time/avg 1st result time (ms): 10000/10000
+Uptime: PT9.981Ss
+RPC stats
+### local RPCs
+REQ | RSP / Error / Timeout
+PING	0|0/0/0
+FIND_NODE	0|0/0/0
+GET_PEERS	0|0/0/0
+ANNOUNCE_PEER	0|0/0/0
+UNKNOWN	0|0/0/0
+### remote RPCs
+REQ / RSP
+PING	0/0
+FIND_NODE	0/0
+GET_PEERS	0/0
+ANNOUNCE_PEER	0/0
+UNKNOWN	0/0
+### non-associated errors
+RX / TX	0/0
+-----------------------
+Routing table
+buckets: 1 / entries: 0
+all   entries:0 replacements:0
+-----------------------
+RPC Servers
+-----------------------
+Lookup Cache
+anchors (0):
+buckets (1) / entries (0):
+
+all entries: 0
+-----------------------
+Tasks
+next id: 1
+#### active: 
+#### queued: 
+
+
+
+==========================
+DHT Diagnostics. Type IPV6_DHT
+# of active servers / all servers: 0/0
+-----------------------
+Stats
+Reachable node estimate: 1
+DB Keys: 0
+DB Items: 0
+TX sum: 0 RX sum: 0
+avg task time/avg 1st result time (ms): 10000/10000
+Uptime: PT9.765Ss
+RPC stats
+### local RPCs
+REQ | RSP / Error / Timeout
+PING	0|0/0/0
+FIND_NODE	0|0/0/0
+GET_PEERS	0|0/0/0
+ANNOUNCE_PEER	0|0/0/0
+UNKNOWN	0|0/0/0
+### remote RPCs
+REQ / RSP
+PING	0/0
+FIND_NODE	0/0
+GET_PEERS	0/0
+ANNOUNCE_PEER	0/0
+UNKNOWN	0/0
+### non-associated errors
+RX / TX	0/0
+-----------------------
+Routing table
+buckets: 1 / entries: 0
+all   entries:0 replacements:0
+-----------------------
+RPC Servers
+-----------------------
+Lookup Cache
+anchors (0):
+buckets (1) / entries (0):
+
+all entries: 0
+-----------------------
+Tasks
+next id: 1
+#### active: 
+#### queued: 
+
+
+
