@@ -21,6 +21,7 @@ import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 
+import hello.util.Log;
 import lbms.plugins.mldht.DHTConfiguration;
 import lbms.plugins.mldht.kad.DHT;
 import lbms.plugins.mldht.kad.DHT.DHTtype;
@@ -30,6 +31,8 @@ import the8472.utils.ConfigReader;
 import the8472.utils.FilesystemNotifications;
 
 public class Launcher {
+	
+	private static String TAG = Launcher.class.getSimpleName();
 	
 	private static final String BOOTSTRAP_KEY = "noRouterBootstrap";
 	private static final String PERSIST_ID = "persistId";
@@ -50,7 +53,6 @@ public class Launcher {
 	}
 	
 	Path configSchema;
-	
 	Path configDefaults;
 	
 	List<Component> components = new ArrayList<>();
@@ -71,8 +73,6 @@ public class Launcher {
 	}
 
 	DHTConfiguration config = new DHTConfiguration() {
-		
-
 		
 		@Override
 		public boolean noRouterBootstrap() {
@@ -112,7 +112,6 @@ public class Launcher {
 	}
 	
 	FilesystemNotifications notifications = new FilesystemNotifications();
-
 
 	protected void start() throws Exception {
 		
@@ -178,8 +177,9 @@ public class Launcher {
 		Path diagnostics = logDir.resolve("diagnostics.log");
 
 		DHT.getScheduler().scheduleWithFixedDelay(
-				() -> {
-
+			new Runnable() {
+				@Override
+				public void run() {
 					try {
 						Path tempFile = Files.createTempFile(diagnostics.getParent(), "diag", ".tmp");
 
@@ -197,13 +197,16 @@ public class Launcher {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-				}, 10, 30, TimeUnit.SECONDS);
+				}
+			}
+			, 10, 30, TimeUnit.SECONDS
+		);
 
 		setLogLevel();
 		configReader.registerFsNotifications(notifications);
 		configReader.addChangeCallback(this::setLogLevel);
 
-		System.out.println("dhts.size() = " + dhts.size());
+		Log.d(TAG, "dhts.size() = " + dhts.size());
 		for (DHT dht: dhts.values()) {
 			if (isIPVersionDisabled(dht.getType().PREFERRED_ADDRESS_TYPE))
 				continue;
@@ -212,7 +215,11 @@ public class Launcher {
 			//dht.addIndexingListener(dumper);
 		}
 		
-		components.forEach(c -> c.start(dhts.values(), configReader));
+		//components.forEach(c -> c.start(dhts.values(), configReader));
+		for (int i = 0; i < components.size(); i++) {
+			Component c = components.get(i);
+			c.start(dhts.values(), configReader);
+		}
 
 		Runtime.getRuntime().addShutdownHook(shutdownHook);
 		

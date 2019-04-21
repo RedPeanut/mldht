@@ -54,7 +54,7 @@ public class GetPeersResponse extends MessageBase {
 	 * @see lbms.plugins.mldht.kad.messages.MessageBase#apply(lbms.plugins.mldht.kad.DHT)
 	 */
 	@Override
-	public void apply (DHT dh_table) {
+	public void apply(DHT dh_table) {
 		dh_table.response(this);
 	}
 	
@@ -96,7 +96,7 @@ public class GetPeersResponse extends MessageBase {
 		this.items = items;
 	}
 
-	public List<DBItem> getPeerItems () {
+	public List<DBItem> getPeerItems() {
 		return items == null ? (List<DBItem>)Collections.EMPTY_LIST : Collections.unmodifiableList(items);
 	}
 	
@@ -113,7 +113,6 @@ public class GetPeersResponse extends MessageBase {
 	public void setScrapeSeeds(BloomFilterBEP33 scrapeSeeds) {
 		this.scrapeSeeds = scrapeSeeds != null ? scrapeSeeds.serialize() : null;
 	}
-
 
 	public BloomFilterBEP33 getScrapePeers() {
 		if (scrapePeers != null)

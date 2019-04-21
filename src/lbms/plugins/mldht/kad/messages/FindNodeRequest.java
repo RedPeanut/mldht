@@ -42,7 +42,7 @@ public class FindNodeRequest extends AbstractLookupRequest {
 	 * @see lbms.plugins.mldht.kad.messages.MessageBase#apply(lbms.plugins.mldht.kad.DHT)
 	 */
 	@Override
-	public void apply (DHT dh_table) {
+	public void apply(DHT dh_table) {
 		dh_table.findNode(this);
 	}
 

@@ -81,7 +81,7 @@ public class Node {
 	private long timeOfLastPingCheck;
 	private long timeOfLastReceiveCountChange;
 	private long timeOfRecovery;
-	private int num_entries;
+	private int numEntries;
 	private final SortedCoWSet<Key> usedIDs = new SortedCoWSet<>(Key.class, null);
 	private volatile Map<InetAddress, RoutingTableEntry> knownNodes = new HashMap<InetAddress, RoutingTableEntry>();
 	
@@ -93,7 +93,7 @@ public class Node {
 	public Node(DHT dht) {
 		this.dht = dht;
 		num_receives = 0;
-		num_entries = 0;
+		numEntries = 0;
 		
 		routingTableCOW.add(new RoutingTableEntry(new Prefix(), new KBucket(this)));
 	}
@@ -113,8 +113,8 @@ public class Node {
 			KBucket bucket = entryByIp.get().a;
 			KBucketEntry entry = entryByIp.get().b;
 			
+			// ID mismatch
 			if (!entryByIp.get().b.getID().equals(id)) {
-				// ID mismatch
 				
 				if (msg.getAssociatedCall() != null) {
 					/*
@@ -126,14 +126,12 @@ public class Node {
 					 *  That means we are certain that the node either changed its node ID or does some ID-spoofing.
 					 *  In either case we don't want it in our routing table
 					 */
-					
 					bucket.removeEntryIfBad(entry, true);
 				}
 				
 				// even if this is not a response we don't want to account for this response, it's an ID mismatch after all
 				return;
 			}
-			
 			
 		}
 		
@@ -152,7 +150,6 @@ public class Node {
 		/*
 			DHT.logInfo("response "+msg+" did not match expected ID, ignoring for the purpose routing table maintenance (may still be consumed by lookups)");
 		};*/
-			
 		
 		KBucketEntry newEntry = new KBucketEntry(msg.getOrigin(), id);
 		newEntry.setVersion(msg.getVersion());
@@ -163,7 +160,7 @@ public class Node {
 			return;
 		}*/
 			
-		insertEntry(newEntry,false);
+		insertEntry(newEntry, false);
 		
 		// we already should have the bucket. might be an old one by now due to splitting
 		// but it doesn't matter, we just need to update the entry, which should stay the same object across bucket splits
@@ -230,7 +227,7 @@ public class Node {
 			tableEntry.bucket.insertOrRefresh(entry);
 		
 		// add delta to the global counter. inaccurate, but will be rebuilt by the bucket checks
-		num_entries += tableEntry.bucket.getNumEntries() - oldSize;
+		numEntries += tableEntry.bucket.getNumEntries() - oldSize;
 		
 	}
 	
@@ -461,13 +458,13 @@ public class Node {
 
 		}
 		
-		num_entries = newEntryCount;
+		numEntries = newEntryCount;
 		
 		rebuildAddressCache();
 	}
 	
 	private void rebuildAddressCache() {
-		Map<InetAddress, RoutingTableEntry> newKnownMap = new HashMap<InetAddress, RoutingTableEntry>(num_entries);
+		Map<InetAddress, RoutingTableEntry> newKnownMap = new HashMap<InetAddress, RoutingTableEntry>(numEntries);
 		List<RoutingTableEntry> table = routingTableCOW;
 		for (int i=0,n=table.size();i<n;i++) {
 			RoutingTableEntry entry = table.get(i);
@@ -582,8 +579,6 @@ public class Node {
 			dht.getEstimator().setInitialRawDistanceEstimate((Double)table.get("log2estimate"));
 			long timestamp = (Long)table.get("timestamp");
 
-
-
 			// integrate loaded objects
 
 			int entriesLoaded = 0;
@@ -619,7 +614,7 @@ public class Node {
 	 * @return
 	 */
 	public int getNumEntriesInRoutingTable () {
-		return num_entries;
+		return numEntries;
 	}
 
 	public List<RoutingTableEntry> getBuckets () {
@@ -635,7 +630,7 @@ public class Node {
 		StringBuilder b = new StringBuilder(10000);
 		List<RoutingTableEntry> table = routingTableCOW;
 		
-		b.append("buckets: ").append(table.size()).append(" / entries: ").append(num_entries).append('\n');
+		b.append("buckets: ").append(table.size()).append(" / entries: ").append(numEntries).append('\n');
 		for (RoutingTableEntry e : table )
 			b.append(e.prefix).append("   entries:").append(e.bucket.getNumEntries()).append(" replacements:").append(e.bucket.getNumReplacements()).append('\n');
 		return b.toString();

@@ -15,8 +15,7 @@
 			<networkPrefix>1.2.3.0/24</networkPrefix>
 		</clusterNodes>
 		<disableIPVersion>6</disableIPVersion>
- 
-		-->
+ 		-->
 	</core>
 	<components>
 		<!---->	

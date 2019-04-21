@@ -16,14 +16,10 @@
  */
 package lbms.plugins.mldht.kad.messages;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
 import lbms.plugins.mldht.kad.DHT;
-import lbms.plugins.mldht.kad.DHTConstants;
-import lbms.plugins.mldht.kad.Key;
 import lbms.plugins.mldht.kad.DHT.DHTtype;
 
 /**
@@ -40,7 +36,7 @@ public class FindNodeResponse extends MessageBase {
 	 * @param id
 	 * @param nodes
 	 */
-	public FindNodeResponse (byte[] mtid, byte[] nodes, byte[] nodes6) {
+	public FindNodeResponse(byte[] mtid, byte[] nodes, byte[] nodes6) {
 		super(mtid, Method.FIND_NODE, Type.RSP_MSG);
 		this.nodes = nodes;
 		this.nodes6 = nodes6;
@@ -50,7 +46,7 @@ public class FindNodeResponse extends MessageBase {
 	 * @see lbms.plugins.mldht.kad.messages.MessageBase#apply(lbms.plugins.mldht.kad.DHT)
 	 */
 	@Override
-	public void apply (DHT dh_table) {
+	public void apply(DHT dh_table) {
 		dh_table.response(this);
 	}
 	
@@ -62,7 +58,6 @@ public class FindNodeResponse extends MessageBase {
 			inner.put("nodes", nodes);
 		if (nodes6 != null)
 			inner.put("nodes6", nodes6);
-		
 
 		return inner;		
 	}
@@ -78,14 +73,14 @@ public class FindNodeResponse extends MessageBase {
 	/**
 	 * @return the nodes
 	 */
-	public byte[] getNodes () {
+	public byte[] getNodes() {
 		return nodes;
 	}
 	
 	/**
 	 * @return the nodes
 	 */
-	public byte[] getNodes6 () {
+	public byte[] getNodes6() {
 		return nodes6;
 	}
 	

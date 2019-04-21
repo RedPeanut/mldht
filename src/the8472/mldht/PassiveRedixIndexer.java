@@ -57,6 +57,7 @@ public class PassiveRedixIndexer implements Component {
 	private static final String TTL = Integer.toString(2*24*3600);
 	
 	private void incomingMessage(DHT dht, MessageBase msg) {
+		
 		if (!running)
 			return;
 		
@@ -68,8 +69,6 @@ public class PassiveRedixIndexer implements Component {
 			String key = k.toString(false);
 			
 			StringBuilder b = new StringBuilder();
-			
-			
 			
 			// zadd <hash> <timestamp> <ip>
 			b.append("*4\r\n");

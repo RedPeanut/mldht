@@ -37,6 +37,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import hello.util.Log;
 import lbms.plugins.mldht.DHTConfiguration;
 import lbms.plugins.mldht.kad.Node.RoutingTableEntry;
 import lbms.plugins.mldht.kad.messages.AbstractLookupRequest;
@@ -69,6 +70,8 @@ import lbms.plugins.mldht.utils.NIOConnectionManager;
  * 
  */
 public class DHT implements DHTBase {
+	
+	private static String TAG = DHT.class.getSimpleName();
 	
 	public static enum DHTtype {
 		IPV4_DHT("IPv4",20+4+2, 4+2, Inet4Address.class,20+8, 1400),
@@ -139,7 +142,7 @@ public class DHT implements DHTBase {
 	private RPCServerManager				serverManager;
 	private Database						db;
 	private TaskManager						tman;
-	private File							table_file;
+	private File							tableFile;
 	private boolean							useRouterBootstrapping;
 
 	private List<DHTStatsListener>			statsListeners;
@@ -200,7 +203,7 @@ public class DHT implements DHTBase {
 		incomingMessageListeners.forEach(e -> e.received(this, msg));
 	}
 	
-	public void ping (PingRequest r) {
+	public void ping(PingRequest r) {
 		if (!isRunning()) {
 			return;
 		}
@@ -216,7 +219,8 @@ public class DHT implements DHTBase {
 		node.recieved(r);
 	}
 
-	public void findNode (AbstractLookupRequest r) {
+	public void findNode(AbstractLookupRequest r) {
+		
 		if (!isRunning()) {
 			return;
 		}
@@ -251,15 +255,14 @@ public class DHT implements DHTBase {
 		r.getServer().sendMessage(response);
 	}
 
-	public void response (MessageBase r) {
+	public void response(MessageBase r) {
 		if (!isRunning()) {
 			return;
 		}
-
 		node.recieved(r);
 	}
 
-	public void getPeers (GetPeersRequest r) {
+	public void getPeers(GetPeersRequest r) {
 		if (!isRunning()) {
 			return;
 		}
@@ -293,9 +296,6 @@ public class DHT implements DHTBase {
 				dbl.addAll(toAdd);
 		}
 		
-		
-			
-
 		// generate a token
 		ByteWrapper token = null;
 		if (db.insertForKeyAllowed(r.getInfoHash()))
@@ -329,8 +329,6 @@ public class DHT implements DHTBase {
 				kns6 = null;
 		}
 		
-
-		
 		GetPeersResponse resp = new GetPeersResponse(r.getMTID(),
 			kns4 != null ? kns4.pack() : null,
 			kns6 != null ? kns6.pack() : null,
@@ -345,7 +343,8 @@ public class DHT implements DHTBase {
 		r.getServer().sendMessage(resp);
 	}
 
-	public void announce (AnnounceRequest r) {
+	public void announce(AnnounceRequest r) {
+		
 		if (!isRunning()) {
 			return;
 		}
@@ -506,7 +505,7 @@ public class DHT implements DHTBase {
 	 * 
 	 * @see lbms.plugins.mldht.kad.DHTBase#start(java.lang.String, int)
 	 */
-	public void start (DHTConfiguration config)
+	public void start(DHTConfiguration config)
 			throws SocketException {
 		
 		if (running) {
@@ -519,7 +518,7 @@ public class DHT implements DHTBase {
 		setStatus(DHTStatus.Initializing);
 		stats.resetStartedTimestamp();
 
-		table_file = config.getNodeCachePath();
+		tableFile = config.getNodeCachePath();
 		Node.initDataStore(config);
 
 		logInfo("Starting DHT on port " + getPort());
@@ -554,10 +553,7 @@ public class DHT implements DHTBase {
 		bootstrapping = true;
 		node.loadTable();
 		
-		
 		started();
-
-
 		
 //		// does 10k random lookups and prints them to a file for analysis
 //		scheduler.schedule(new Runnable() {
@@ -629,8 +625,6 @@ public class DHT implements DHTBase {
 			if (t.getTodoCount() > 0)
 				tman.addTask(t);
 		}
-			
-		
 		
 		bootstrapping = false;
 		bootstrap();
@@ -640,8 +634,6 @@ public class DHT implements DHTBase {
 			Task t = new KeyspaceCrawler(srv, node);
 			tman.addTask(t);
 		}*/
-			
-		
 		
 		scheduledActions.add(scheduler.scheduleWithFixedDelay(() -> {
 			try {
@@ -693,7 +685,7 @@ public class DHT implements DHTBase {
 			
 			try {
 				if (!node.isInSurvivalMode())
-					node.saveTable(table_file);
+					node.saveTable(tableFile);
 			} catch (IOException e2) {
 				e2.printStackTrace();
 			}
@@ -723,7 +715,7 @@ public class DHT implements DHTBase {
 
 		serverManager.destroy();
 		try {
-			node.saveTable(table_file);
+			node.saveTable(tableFile);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -829,8 +821,9 @@ public class DHT implements DHTBase {
 			return;
 		}
 		
-		System.out.println("useRouterBootstrapping = " + useRouterBootstrapping);
-		System.out.println("node.getNumEntriesInRoutingTable() = " + node.getNumEntriesInRoutingTable());
+		//Log.d(TAG, "useRouterBootstrapping = " + useRouterBootstrapping);
+		//Log.d(TAG, "node.getNumEntriesInRoutingTable() = " + node.getNumEntriesInRoutingTable());
+		
 		if (useRouterBootstrapping || node.getNumEntriesInRoutingTable() > 1) {
 			
 			final AtomicInteger finishCount = new AtomicInteger();
