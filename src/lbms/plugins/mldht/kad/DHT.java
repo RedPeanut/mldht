@@ -19,6 +19,7 @@ package lbms.plugins.mldht.kad;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -37,7 +38,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import hello.util.Log;
 import lbms.plugins.mldht.DHTConfiguration;
 import lbms.plugins.mldht.kad.Node.RoutingTableEntry;
 import lbms.plugins.mldht.kad.messages.AbstractLookupRequest;
@@ -104,13 +104,28 @@ public class DHT implements DHTBase {
 	static {
 		executorGroup = new ThreadGroup("mlDHT");
 		int threads = Math.max(Runtime.getRuntime().availableProcessors(),2);
-		scheduler = new ScheduledThreadPoolExecutor(threads, (ThreadFactory) r -> {
+		/*scheduler = new ScheduledThreadPoolExecutor(threads, (ThreadFactory) r -> {
 			Thread t = new Thread(executorGroup, r, "mlDHT Scheduler");
 			
 			t.setUncaughtExceptionHandler((t1, e) -> DHT.log(e, LogLevel.Error));
 			t.setDaemon(true);
 			return t;
+		});*/
+		
+		scheduler = new ScheduledThreadPoolExecutor(threads, new ThreadFactory() {
+			public Thread newThread (Runnable r) {
+				Thread t = new Thread(executorGroup, r, "mlDHT Executor");
+				t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+					@Override
+					public void uncaughtException(Thread t, Throwable e) {
+						DHT.log(e, LogLevel.Error);
+					}
+				});
+				t.setDaemon(true);
+				return t;
+			}
 		});
+		
 		scheduler.setCorePoolSize(threads);
 		scheduler.setMaximumPoolSize(threads*2);
 		scheduler.setKeepAliveTime(20, TimeUnit.SECONDS);
@@ -200,7 +215,11 @@ public class DHT implements DHTBase {
 	}
 	
 	void incomingMessage(MessageBase msg) {
-		incomingMessageListeners.forEach(e -> e.received(this, msg));
+		//incomingMessageListeners.forEach(e -> e.received(this, msg));
+		for (int i = 0; i < incomingMessageListeners.size(); i++) {
+			IncomingMessageListener e = incomingMessageListeners.get(i);
+			e.received(this, msg);
+		}
 	}
 	
 	public void ping(PingRequest r) {
@@ -538,15 +557,33 @@ public class DHT implements DHTBase {
 		
 		// these checks are fairly expensive on large servers (network interface enumeration)
 		// schedule them separately
-		scheduledActions.add(scheduler.scheduleWithFixedDelay(serverManager::doBindChecks, 10, 10, TimeUnit.SECONDS));
-		scheduledActions.add(scheduler.scheduleAtFixedRate(() -> {
+		//scheduledActions.add(scheduler.scheduleWithFixedDelay(serverManager::doBindChecks, 10, 10, TimeUnit.SECONDS));
+		scheduledActions.add(scheduler.scheduleWithFixedDelay(new Runnable() {
+			@Override
+			public void run() {
+				serverManager.doBindChecks();
+			}
+		}
+		, 10, 10, TimeUnit.SECONDS));
+		
+		/*scheduledActions.add(scheduler.scheduleAtFixedRate(() -> {
 			// maintenance that should run all the time, before the first queries
 			tman.dequeue();
 
 			if (running)
 				onStatsUpdate();
-		}, 5000, DHTConstants.DHT_UPDATE_INTERVAL, TimeUnit.MILLISECONDS));
+		}, 5000, DHTConstants.DHT_UPDATE_INTERVAL, TimeUnit.MILLISECONDS));*/
+		scheduledActions.add(scheduler.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				// maintenance that should run all the time, before the first queries
+				tman.dequeue();
 
+				if (running)
+					onStatsUpdate();
+			}
+		}, 5000, DHTConstants.DHT_UPDATE_INTERVAL, TimeUnit.MILLISECONDS));
+		
 		// initialize as many RPC servers as we need
 		serverManager.refresh(System.currentTimeMillis());
 		
@@ -635,30 +672,52 @@ public class DHT implements DHTBase {
 			tman.addTask(t);
 		}*/
 		
-		scheduledActions.add(scheduler.scheduleWithFixedDelay(() -> {
+		scheduledActions.add(scheduler.scheduleWithFixedDelay(
+		/*() -> {
 			try {
 				update();
 			} catch (RuntimeException e) {
 				log(e, LogLevel.Fatal);
 			}
-		}, 5000, DHTConstants.DHT_UPDATE_INTERVAL, TimeUnit.MILLISECONDS));
+		}*/
+		new Runnable() {
+			@Override
+			public void run() {
+				try {
+					update();
+				} catch (RuntimeException e) {
+					log(e, LogLevel.Fatal);
+				}
+			}
+		},
+		5000, DHTConstants.DHT_UPDATE_INTERVAL, TimeUnit.MILLISECONDS));
 		
-		scheduledActions.add(scheduler.scheduleWithFixedDelay(() -> {
+		scheduledActions.add(scheduler.scheduleWithFixedDelay(
+		/*() -> {
 			try {
 				long now = System.currentTimeMillis();
-
-
 				db.expire(now);
 				cache.cleanup(now);
 			} catch (Exception e) {
 				log(e, LogLevel.Fatal);
 			}
-
+		}*/
+		new Runnable() {
+			@Override
+			public void run() {
+				try {
+					long now = System.currentTimeMillis();
+					db.expire(now);
+					cache.cleanup(now);
+				} catch (Exception e) {
+					log(e, LogLevel.Fatal);
+				}
+			}
 		}, 1000, DHTConstants.CHECK_FOR_EXPIRED_ENTRIES, TimeUnit.MILLISECONDS));
 		
 		// single ping to a random node per server to check socket liveness
-		scheduledActions.add(scheduler.scheduleWithFixedDelay(() -> {
-			
+		scheduledActions.add(scheduler.scheduleWithFixedDelay(
+		/*() -> {
 			for (RPCServer srv : serverManager.getAllServers()) {
 				if (srv.getNumActiveRPCCalls() > 0)
 					continue;
@@ -669,8 +728,28 @@ public class DHT implements DHTBase {
 					call.setExpectedID(entry.getID());
 					call.start();
 				});
+			};
+		}*/
+		new Runnable() {
+			@Override
+			public void run() {
+				for (RPCServer srv : serverManager.getAllServers()) {
+					
+					if (srv.getNumActiveRPCCalls() > 0)
+						continue;
+					
+					/*node.getRandomEntry().ifPresent((entry) -> {
+						PingRequest req = new PingRequest();
+						req.setDestination(entry.getAddress());
+						RPCCall call = new RPCCall(srv, req);
+						call.setExpectedID(entry.getID());
+						call.start();
+					});*/
+					
+					node.getRandomEntry();
+					
+				}
 			}
-				;
 		}, 1, 10, TimeUnit.SECONDS));
 		
 		

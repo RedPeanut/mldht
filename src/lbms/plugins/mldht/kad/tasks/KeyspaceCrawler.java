@@ -44,10 +44,16 @@ public class KeyspaceCrawler extends Task {
 	
 	Set<InetSocketAddress> responded = new HashSet<InetSocketAddress>();
 	
-	KeyspaceCrawler (RPCServer rpc, Node node) {
+	KeyspaceCrawler(RPCServer rpc, Node node) {
 		super(Key.createRandomKey(),rpc, node);
 		setInfo("Exhaustive Keyspace Crawl");
-		addListener(t -> done());
+		//addListener(t -> done());
+		addListener(new TaskListener() {
+			@Override
+			public void finished(Task t) {
+				done();
+			}
+		});
 	}
 
 	@Override
@@ -91,7 +97,7 @@ public class KeyspaceCrawler extends Task {
 	}
 
 	@Override
-	void callFinished (RPCCall c, MessageBase rsp) {
+	void callFinished(RPCCall c, MessageBase rsp) {
 		if (isFinished()) {
 			return;
 		}

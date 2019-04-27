@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import lbms.plugins.mldht.kad.BloomFilterBEP33;
 import lbms.plugins.mldht.kad.DBItem;
@@ -122,15 +121,18 @@ public class MessageDecoder {
 	 * @param srv
 	 * @return
 	 */
-	private static MessageBase parseResponse (Map<String, Object> map,RPCServer srv) throws MessageException {
+	private static MessageBase parseResponse(Map<String, Object> map, RPCServer srv) throws MessageException {
 
 		byte[] mtid = (byte[]) map.get(MessageBase.TRANSACTION_KEY);
 		if (mtid == null || mtid.length < 1)
 			throw new MessageException("missing transaction ID",ErrorCode.ProtocolError);
 		
 		// responses don't have explicit methods, need to match them to a request to figure that one out
-		Method m = Optional.ofNullable(srv.findCall(mtid)).map(c -> c.getMessageMethod()).orElse(Method.UNKNOWN);
-
+		//Method m = Optional.ofNullable(srv.findCall(mtid)).map(c -> c.getMessageMethod()).orElse(Method.UNKNOWN);
+		Method m = Method.UNKNOWN;
+		RPCCall c = srv.findCall(mtid);
+		if (c != null) m = c.getMessageMethod();
+		
 		return parseResponse(map, m, mtid);
 	}
 

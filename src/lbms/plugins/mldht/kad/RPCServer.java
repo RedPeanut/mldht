@@ -66,7 +66,7 @@ import the8472.bencode.Utils;
 public class RPCServer {
 	
 	private InetAddress								addr;
-	private DHT										dh_table;
+	private DHT										dht;
 	private RPCServerManager						manager;
 	private ConcurrentMap<ByteWrapper, RPCCall>		calls;
 	private Queue<RPCCall>							call_queue;
@@ -100,7 +100,7 @@ public class RPCServer {
 
 	public RPCServer (RPCServerManager manager, InetAddress addr, int port, RPCStats stats) {
 		this.port = port;
-		this.dh_table = manager.dht;
+		this.dht = manager.dht;
 		timeoutFilter = new ResponseTimeoutFilter();
 		pipeline = new ConcurrentLinkedQueue<EnqueuedSend>();
 		calls = new ConcurrentHashMap<ByteWrapper, RPCCall>(80,0.75f,3);
@@ -109,11 +109,11 @@ public class RPCServer {
 		this.addr = addr;
 		this.manager = manager;
 		// reserve an ID
-		derivedId = dh_table.getNode().registerServer(this);
+		derivedId = dht.getNode().registerServer(this);
 	}
 	
 	public DHT getDHT() {
-		return dh_table;
+		return dht;
 	}
 	
 	public int getPort() {
@@ -131,7 +131,7 @@ public class RPCServer {
 		if (sel == null)
 			return null;
 		InetAddress addr = ((DatagramChannel)sel.getChannel()).socket().getLocalAddress();
-		if (dh_table.getType().PREFERRED_ADDRESS_TYPE.isInstance(addr) && AddressUtils.isGlobalUnicast(addr))
+		if (dht.getType().PREFERRED_ADDRESS_TYPE.isInstance(addr) && AddressUtils.isGlobalUnicast(addr))
 			return addr;
 		return null;
 	}
@@ -158,7 +158,7 @@ public class RPCServer {
 		} catch (IOException e) {
 			DHT.log(e, LogLevel.Error);
 		}
-		dh_table.getNode().removeServer(this);
+		dht.getNode().removeServer(this);
 		manager.serverRemoved(this);
 		pipeline.clear();
 	}
@@ -191,7 +191,7 @@ public class RPCServer {
 			ByteWrapper w = new ByteWrapper(c.getRequest().getMTID());
 			stats.addTimeoutMessageToCount(c.getRequest());
 			calls.remove(w);
-			dh_table.timeout(c);
+			dht.timeout(c);
 			doQueuedCalls();
 		}
 		
@@ -261,7 +261,7 @@ public class RPCServer {
 		return isReachable;
 	}
 	
-	private void handlePacket (ByteBuffer p, SocketAddress soa) {
+	private void handlePacket(ByteBuffer p, SocketAddress soa) {
 		InetSocketAddress source = (InetSocketAddress) soa;
 		
 		// ignore port 0, can't respond to them anyway and responses to requests from port 0 will be useless too
@@ -378,8 +378,8 @@ public class RPCServer {
 	private void handleMessage(MessageBase msg) {
 		if (msg.getType() == Type.RSP_MSG && msg.getPublicIP() != null)
 			updatePublicIPConsensus(msg.getOrigin().getAddress(), msg.getPublicIP());
-		dh_table.incomingMessage(msg);
-		msg.apply(dh_table);
+		dht.incomingMessage(msg);
+		msg.apply(dht);
 	}
 	
 	private void updatePublicIPConsensus(InetAddress source, InetSocketAddress addr) {
@@ -434,7 +434,7 @@ public class RPCServer {
 	}
 
 	/*
-	private void send (InetSocketAddress addr, byte[] msg) throws IOException {
+	private void send(InetSocketAddress addr, byte[] msg) throws IOException {
 		if (!sock.isClosed()) {
 			DatagramPacket p = new DatagramPacket(msg, msg.length);
 			p.setSocketAddress(addr);
@@ -493,7 +493,7 @@ public class RPCServer {
 				channel.setOption(StandardSocketOptions.SO_RCVBUF, 2*1024*1024);
 				channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
 				channel.bind(new InetSocketAddress(addr, port));
-				dh_table.getConnectionManager().register(this);
+				dht.getConnectionManager().register(this);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -512,7 +512,7 @@ public class RPCServer {
 			
 			if (key.isValid() && key.isReadable())
 				readEvent();
-				
+			
 		}
 		
 		private final ByteBuffer readBuffer = ByteBuffer.allocateDirect(DHTConstants.RECEIVE_BUFFER_SIZE);
@@ -541,7 +541,7 @@ public class RPCServer {
 				
 				DHT.getScheduler().execute(() -> {handlePacket(buf, soa);});
 				numReceived++;
-				stats.addReceivedBytes(buf.limit() + dh_table.getType().HEADER_LENGTH);
+				stats.addReceivedBytes(buf.limit() + dht.getType().HEADER_LENGTH);
 			}
 		}
 		
@@ -593,7 +593,7 @@ public class RPCServer {
 							es.associatedCall.sent();
 						
 						stats.addSentMessageToCount(es.toSend);
-						stats.addSentBytes(bytesSent + dh_table.getType().HEADER_LENGTH);
+						stats.addSentBytes(bytesSent + dht.getType().HEADER_LENGTH);
 						if (DHT.isLogLevelEnabled(LogLevel.Debug))
 							DHT.logDebug("RPC send message to " + es.toSend.getDestination() + " | "+ es.toSend.toString() + " | length: " +bytesSent);
 					} catch (IOException e) {
@@ -682,7 +682,7 @@ public class RPCServer {
 			if (buf != null)
 				return buf;
 			try {
-				return buf = ByteBuffer.wrap(toSend.encode(dh_table.getType().MAX_PACKET_SIZE));
+				return buf = ByteBuffer.wrap(toSend.encode(dht.getType().MAX_PACKET_SIZE));
 			} catch (Exception e) {
 				byte[] t = new byte[0];
 				try {

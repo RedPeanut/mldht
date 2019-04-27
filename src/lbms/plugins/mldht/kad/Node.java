@@ -622,7 +622,20 @@ public class Node {
 	}
 	
 	public Optional<KBucketEntry> getRandomEntry() {
-		return Optional.of(routingTableCOW).filter(t -> !t.isEmpty()).map(table -> table.get(ThreadLocalRandom.current().nextInt(table.size())).bucket).flatMap(KBucket::randomEntry);
+		return Optional.of(routingTableCOW)
+			.filter(t -> !t.isEmpty())
+			.map(table -> table.get(ThreadLocalRandom.current().nextInt(table.size())).bucket)
+			.flatMap(KBucket::randomEntry);
+		
+		/*List<RoutingTableEntry> l = new ArrayList<>();
+		for (int i = 0; i < routingTableCOW.size(); i++) {
+			RoutingTableEntry t = routingTableCOW.get(i);
+			if (t != null) {
+				KBucket b = routingTableCOW.get(ThreadLocalRandom.current().nextInt(routingTableCOW.size())).bucket; 
+				return b.randomEntry();
+			}
+		}*/
+		
 	}
 	
 	@Override
